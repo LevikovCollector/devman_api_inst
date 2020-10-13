@@ -135,3 +135,5 @@ config.env
 images/
 
 images_JPG/
+
+config/

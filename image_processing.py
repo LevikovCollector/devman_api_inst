@@ -65,21 +65,24 @@ def convert_to_jpg(folder_with_img):
         image_name = img.split('.')[0]
         image = Image.open(f'{folder_with_img}\\{img}')
         width, height  = image.size
-        print(f'Размеры до изменений: {image.size}')
         image = image.convert('RGB')
-        if width > height:
-           width = 1080
-        else:
-            height = 1080
-        image.thumbnail((width, height))
-        print(f'Размеры после изменений: {image.size}')
+        if width > 1080 or height > 1080:
+            if width > height:
+                width = 1080
+                if height > 1080:
+                    height = 1080
+            else:
+                height = 1080
+                if width > 1080:
+                   width = 1080
+            image.thumbnail((width, height))
         image.save(f"images_JPG\\{image_name}.jpeg", format="JPEG")
-        print(f'Изменен файл: {image_name}')
-        print('#'*10)
+
 
 if __name__ == '__main__':
     disable_warnings(exceptions.InsecureRequestWarning)
     try:
+        fetch_hubble_collections('wallpaper')
         convert_to_jpg('images')
     except requests.exceptions.HTTPError as error:
         print(f'Возникла ошибка: {error}')
