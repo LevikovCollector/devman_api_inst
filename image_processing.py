@@ -4,79 +4,62 @@ import os
 from urllib3 import disable_warnings, exceptions
 
 
+def create_folder(folder_name):
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
 
 def download_img(img_name, img_url):
-    if not os.path.exists('images'):
-        os.makedirs('images')
-
-    if type(img_url) == list:
-        for  img in img_url:
-            response = requests.get(img, verify=False)
-            response.raise_for_status()
-
-            save_img(f'{img_name}', response.content, file_expansion(img))
-
+    create_folder('images')
+    img_urls = []
+    if isinstance(img_url, str):
+        img_urls.append(img_url)
     else:
-        response = requests.get(img_url, verify=False)
+        img_urls = img_url
+
+    for index, img in enumerate(img_urls):
+        response = requests.get(img, verify=False)
         response.raise_for_status()
-        save_img(img_name, response.content, file_expansion(img_url))
 
+        save_img(f'{img_name}_{index}', response.content, get_file_extension(img))
 
-def save_img(img_name, img_content, expansion):
-    img_index = len(os.listdir('images'))
-    file_path = f'images\\{img_name}_{img_index}.{expansion}'
+def save_img(img_name, img_content, extension):
+    file_path = f'images/{img_name}.{extension}'
 
     with open(file_path, 'wb') as file:
         file.write(img_content)
-    print(f'Файл: {img_name}_{img_index}.{expansion} - скачен')
-
+    print(f'Файл: {img_name}.{extension} - скачен')
 
 def fetch_spacex_last_launch():
     response = requests.get('https://api.spacexdata.com/v3/launches/101')
     response.raise_for_status()
-    return (response.json()['links']['flickr_images'])
+    return response.json()['links']['flickr_images']
 
-def file_expansion(file_url):
+def get_file_extension(file_url):
     return file_url.split('/')[-1].split('.')[-1]
 
-def fetch_hubble(hubble_id):
-    response = requests.get(f'http://hubblesite.org/api/v3/image/{hubble_id}')
-    response.raise_for_status()
-
-    hubble_images = []
-    for hubble_file in response.json()['image_files']:
-        file_url = hubble_file['file_url'].replace('//','http://')
-        hubble_images.append(file_url)
-
-    download_img(f'img_from_hubble', hubble_images)
-
 def fetch_hubble_collections(collections_name):
-    # “holiday_cards”, “wallpaper”, “spacecraft”, “news”, “printshop”, “stsci_gallery”
     response = requests.get(f'http://hubblesite.org/api/v3/images/{collections_name}')
     response.raise_for_status()
+    collections_img = []
     for collection in response.json():
-        fetch_hubble(collection['id'])
+        response = requests.get(f'http://hubblesite.org/api/v3/image/{collection["id"]}')
+        response.raise_for_status()
+        for hubble_file in response.json()['image_files']:
+            file_url = hubble_file['file_url'].replace('//', 'http://')
+            collections_img.append(file_url)
+
+    download_img(f'img_from_hubble', collections_img)
 
 def convert_to_jpg(folder_with_img):
-    if not os.path.exists('images_JPG'):
-        os.makedirs('images_JPG')
+    create_folder('images_JPG')
+
     all_files_from_dir = os.listdir(folder_with_img)
     for img in all_files_from_dir:
         image_name = img.split('.')[0]
-        image = Image.open(f'{folder_with_img}\\{img}')
-        width, height  = image.size
+        image = Image.open(f'{folder_with_img}/{img}')
         image = image.convert('RGB')
-        if width > 1080 or height > 1080:
-            if width > height:
-                width = 1080
-                if height > 1080:
-                    height = 1080
-            else:
-                height = 1080
-                if width > 1080:
-                   width = 1080
-            image.thumbnail((width, height))
-        image.save(f"images_JPG\\{image_name}.jpeg", format="JPEG")
+        image.thumbnail((1080, 1080))
+        image.save(f"images_JPG/{image_name}.jpeg", format="JPEG")
 
 
 if __name__ == '__main__':
