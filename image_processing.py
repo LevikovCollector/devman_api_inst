@@ -2,32 +2,29 @@ import requests
 from PIL import Image
 import os
 from urllib3 import disable_warnings, exceptions
-
+import pathlib
 
 def create_folder(folder_name):
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
+     os.makedirs(folder_name, exist_ok=True)
 
 def download_img(img_name, img_url):
-    create_folder('images')
     img_urls = []
     if isinstance(img_url, str):
         img_urls.append(img_url)
     else:
         img_urls = img_url
-
     for index, img in enumerate(img_urls):
         response = requests.get(img, verify=False)
         response.raise_for_status()
 
         save_img(f'{img_name}_{index}', response.content, get_file_extension(img))
 
-def save_img(img_name, img_content, extension):
-    file_path = f'images/{img_name}.{extension}'
+def create_file_path(dir, file_name):
+    return pathlib.Path.joinpath(pathlib.Path.cwd(), dir, file_name)
 
-    with open(file_path, 'wb') as file:
+def save_img(img_name, img_content, extension):
+    with open(create_file_path('images', f'{img_name}.{extension}'), 'wb') as file:
         file.write(img_content)
-    print(f'Файл: {img_name}.{extension} - скачен')
 
 def fetch_spacex_last_launch():
     response = requests.get('https://api.spacexdata.com/v3/launches/101')
@@ -51,21 +48,21 @@ def fetch_hubble_collections(collections_name):
     download_img(f'img_from_hubble', collections_img)
 
 def convert_to_jpg(folder_with_img):
-    create_folder('images_JPG')
-
     all_files_from_dir = os.listdir(folder_with_img)
     for img in all_files_from_dir:
         image_name = img.split('.')[0]
-        image = Image.open(f'{folder_with_img}/{img}')
+        image = Image.open(create_file_path(f'{folder_with_img}', f'{img}'))
         image = image.convert('RGB')
         image.thumbnail((1080, 1080))
-        image.save(f"images_JPG/{image_name}.jpeg", format="JPEG")
+        image.save(create_file_path('images_JPG',f'{image_name}.jpeg'), format="JPEG")
 
 
 if __name__ == '__main__':
     disable_warnings(exceptions.InsecureRequestWarning)
     try:
-        fetch_hubble_collections('wallpaper')
+        #create_folder('images')
+        #create_folder('images_JPG')
+        #fetch_hubble_collections('wallpaper')
         convert_to_jpg('images')
     except requests.exceptions.HTTPError as error:
         print(f'Возникла ошибка: {error}')
